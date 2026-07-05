@@ -20,7 +20,10 @@ python bgf2json.py match.bgf out.json   # writes to a specific file
 After `pip install`, the `bgf2json` command is also available:
 
 ```bash
-bgf2json match.bgf
+bgf2json match.bgf                  # pretty-printed JSON
+bgf2json match.bgf --condensed      # single-line JSON
+bgf2json match.bgf -z               # gzip-compressed output (.json.gz)
+bgf2json match.bgf out.json -z      # compressed with explicit output path
 ```
 
 ## Library
