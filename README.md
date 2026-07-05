@@ -13,28 +13,34 @@ Or just copy `bgf2json.py` — it has no dependencies beyond the standard librar
 ## CLI
 
 ```bash
-python bgf2json.py match.bgf            # prints JSON to stdout
-python bgf2json.py match.bgf out.json   # writes to file
+python bgf2json.py match.bgf            # writes match.json in the same folder
+python bgf2json.py match.bgf out.json   # writes to a specific file
 ```
 
 After `pip install`, the `bgf2json` command is also available:
 
 ```bash
-bgf2json match.bgf out.json
+bgf2json match.bgf
 ```
 
 ## Library
 
 ```python
 from pathlib import Path
+from bgf2json import decode_bgf
+
+data = decode_bgf(Path("match.bgf"))
+# data is a plain Python dict/list
+```
+
+Lower-level access if you need the header metadata too:
+
+```python
 from bgf2json import read_bgf, decode_smile
 
 header, smile_bytes = read_bgf(Path("match.bgf"))
 data = decode_smile(smile_bytes)
-# data is now a plain Python dict/list
 ```
-
-`read_bgf` returns a `(header, smile_bytes)` tuple where `header` is the parsed JSON metadata dict and `smile_bytes` is the raw Smile payload. `decode_smile` converts that payload to a Python object.
 
 ## BGF format
 

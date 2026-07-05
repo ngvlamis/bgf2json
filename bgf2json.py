@@ -187,23 +187,26 @@ def decode_smile(smile_bytes: bytes):
     return _SmileDecoder(smile_bytes).decode()
 
 
+def decode_bgf(path: Path):
+    """Read a .bgf file and return the decoded data as a Python object."""
+    header, smile_bytes = read_bgf(path)
+    return decode_smile(smile_bytes)
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python bgf2json.py input.bgf [output.json]", file=sys.stderr)
         sys.exit(1)
 
     infile = Path(sys.argv[1])
-    outfile = Path(sys.argv[2]) if len(sys.argv) > 2 else None
+    outfile = Path(sys.argv[2]) if len(sys.argv) > 2 else infile.with_suffix('.json')
 
     header, smile_bytes = read_bgf(infile)
     data = decode_smile(smile_bytes)
 
     json_text = json.dumps(data, indent=2, ensure_ascii=False)
-    if outfile:
-        outfile.write_text(json_text, encoding='utf-8')
-        print(f"Wrote {outfile} | meta={header}", file=sys.stderr)
-    else:
-        print(json_text)
+    outfile.write_text(json_text, encoding='utf-8')
+    print(f"Wrote {outfile}", file=sys.stderr)
 
 
 if __name__ == '__main__':
