@@ -5,8 +5,6 @@ from pathlib import Path
 
 SMILE_MAGIC = b':)\n'
 FEATURE_SHARED_NAMES = 0x01
-FEATURE_SHARED_VALUES = 0x02
-FEATURE_RAW_BINARY = 0x04
 
 
 def decompress_if_needed(b: bytes) -> bytes:
@@ -33,8 +31,7 @@ class _SmileDecoder:
         assert data[:3] == SMILE_MAGIC
         self.buf = data
         self.pos = 4
-        self.features = data[3]
-        self.shared_names = bool(self.features & FEATURE_SHARED_NAMES)
+        self.shared_names = bool(data[3] & FEATURE_SHARED_NAMES)
         self.name_table: list[str] = []
 
     # ── low-level I/O ───────────────────────────────────────────────────────
@@ -107,8 +104,7 @@ class _SmileDecoder:
 
     # ── value ────────────────────────────────────────────────────────────────
 
-    _END_ARRAY  = object()
-    _END_OBJECT = object()
+    _END_ARRAY = object()
 
     def _read_value(self):
         b = self._rb()
@@ -116,7 +112,6 @@ class _SmileDecoder:
         if b == 0xFA: return self._parse_object()
         if b == 0xF8: return self._parse_array()
         if b == 0xF9: return self._END_ARRAY
-        if b == 0xFB: return self._END_OBJECT
         if b == 0xFF: return self._END_ARRAY   # end-of-content
 
         if b == 0x20: return ''
@@ -142,13 +137,10 @@ class _SmileDecoder:
 
         # Long string (ASCII 0xE0–0xE3, Unicode 0xE4–0xE7): terminated by 0xFC
         if 0xE0 <= b <= 0xEF:
-            parts = bytearray()
-            while True:
-                ch = self._rb()
-                if ch == 0xFC:
-                    break
-                parts.append(ch)
-            return parts.decode('utf-8' if (b & 0x04) else 'ascii', errors='replace')
+            end = self.buf.index(0xFC, self.pos)
+            chunk = bytes(self.buf[self.pos:end])
+            self.pos = end + 1
+            return chunk.decode('utf-8' if (b & 0x04) else 'ascii', errors='replace')
 
         raise ValueError(f"Unknown Smile value token 0x{b:02x} at pos {self.pos - 1}")
 
@@ -215,8 +207,7 @@ def main():
     else:
         outfile = infile.with_suffix('.json')
 
-    header, smile_bytes = read_bgf(infile)
-    data = decode_smile(smile_bytes)
+    data = decode_bgf(infile)
 
     indent = None if (args.condensed or args.compressed) else 2
     json_bytes = json.dumps(data, indent=indent, ensure_ascii=False).encode('utf-8')
