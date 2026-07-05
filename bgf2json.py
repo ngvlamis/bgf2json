@@ -1,6 +1,6 @@
 # bgf2json.py — BGF (header + gzip/zlib/raw Smile) → JSON (pure Python, no Java)
 
-import sys, json, gzip, zlib, struct
+import sys, json, gzip, zlib, struct, argparse
 from pathlib import Path
 
 SMILE_MAGIC = b':)\n'
@@ -194,18 +194,38 @@ def decode_bgf(path: Path):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python bgf2json.py input.bgf [output.json]", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        prog='bgf2json',
+        description='Convert a BGBlitz .bgf file to JSON.',
+    )
+    parser.add_argument('input', help='input .bgf file')
+    parser.add_argument('output', nargs='?', help='output file (default: input with .json suffix)')
+    parser.add_argument('--condensed', action='store_true',
+                        help='omit whitespace from the JSON output')
+    parser.add_argument('-z', '--compressed', action='store_true',
+                        help='omit whitespace and gzip the output (default suffix: .json.gz)')
+    args = parser.parse_args()
 
-    infile = Path(sys.argv[1])
-    outfile = Path(sys.argv[2]) if len(sys.argv) > 2 else infile.with_suffix('.json')
+    infile = Path(args.input)
+
+    if args.output:
+        outfile = Path(args.output)
+    elif args.compressed:
+        outfile = infile.with_suffix('.json.gz')
+    else:
+        outfile = infile.with_suffix('.json')
 
     header, smile_bytes = read_bgf(infile)
     data = decode_smile(smile_bytes)
 
-    json_text = json.dumps(data, indent=2, ensure_ascii=False)
-    outfile.write_text(json_text, encoding='utf-8')
+    indent = None if (args.condensed or args.compressed) else 2
+    json_bytes = json.dumps(data, indent=indent, ensure_ascii=False).encode('utf-8')
+
+    if args.compressed:
+        outfile.write_bytes(gzip.compress(json_bytes))
+    else:
+        outfile.write_bytes(json_bytes)
+
     print(f"Wrote {outfile}", file=sys.stderr)
 
 
