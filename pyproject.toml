@@ -1,0 +1,9 @@
+[project]
+name = "bgf2json"
+version = "0.1.0"
+description = "Convert BGBlitz .bgf match files to JSON (pure Python, no Java)"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+bgf2json = "bgf2json:main"
